@@ -1,0 +1,2 @@
+textract~=1.6.4
+boto3

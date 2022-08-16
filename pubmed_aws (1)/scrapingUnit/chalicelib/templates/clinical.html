@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="utf-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="ThemeBucket">
+    <link rel="shortcut icon" href="https://pumbed.s3.eu-west-2.amazonaws.com/statics/images/favicon.jpg">
+
+    <title>Clinical.gov Search</title>
+
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" />
+  	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+
+  	<!-- CSS for DataTable -->
+<!--  	<link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css" />-->
+<!--  	<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.5/css/responsive.bootstrap4.min.css" />-->
+<!--  	<link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.6.2/css/buttons.bootstrap4.min.css" />-->
+
+	<link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css" />
+
+
+  	<!-- Custom CSS -->
+  	<link rel="stylesheet" href="https://pumbed.s3.eu-west-2.amazonaws.com/statics/css/style.css" />
+
+</head>
+<body>
+	<!--  Spinner  -->
+	<div id="spinner" style="display: none;">
+		<div class="background"></div>
+		<div class="spcontainer large">
+			<div class="ispinner ispinner--gray ispinner--large ispinner--animating">
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+				<div class="ispinner__blade"></div>
+			</div>
+		</div>
+	</div>
+	<!--  #END Spinner  -->
+
+	<div class="col-md-12 search-div">
+		<div class="row">
+    		<div class="container">
+    			<div class="row">
+		    		<div class="col-md-10 offset-md-1 mb-1 mt-5">
+			            <h3 class="text-center mb-3">Clinical.gov</h3>
+			            <div class="row">
+			            	<div class="col-md-12">
+			            		<div class="input-group form-group">
+					                <input type="text" class="form-control typeahead border-primary" name="conditions_disease" id="conditions_disease" placeholder="Condition or disease" data-provide="typeahead" autocomplete="off">
+					                <input type="text" class="form-control typeahead border-primary" name="other_terms" id="other_terms" placeholder="Other terms" data-provide="typeahead" autocomplete="off">
+					                <div class="input-group-append">
+					                    <button type="submit" class="btn btn-outline-primary" id="clinical_submit" title="Start Search">
+					                        <i class="fa fa-search"></i>
+					                    </button>
+					                </div>
+                                    <a type="button" href="/api" class="btn btn-primary btn-border ml-4" style="width: 105px;" title="Toggle" >To Pubmed</a>
+					            </div>
+			            	</div>
+                            <div class="col-md-12">
+			            		<div class="form-group d-flex">
+                                    <button id="pdf_download" style="display:none; margin-left: 20px" class="btn btn-primary">
+                                        Download PDFs
+                                    </button>
+                                    <button id="extract_texts" style="display:none; margin-left: 20px" class="btn btn-primary">
+                                        Extract Texts
+                                    </button>
+
+									<div class="ml-auto results-div" style="display: none">
+										<h4 class="m-auto">Downloadable</h4>
+										<a href="#" class="ml-3 text-success" title="Download Excel" onclick="export_file('excel');" style="display: none;" id="export_excel_button">
+											<i class="fa fa-file-excel-o" style="font-size:38px;"></i>
+										</a>
+										<a href="#" class="ml-3 text-danger" title="Download PDF Files" onclick="export_file('pdf');" style="display: none;" id="export_pdf_button">
+											<i class="fa fa-file-pdf-o" style="font-size:38px;"></i>
+										</a>
+										<a href="#" class="ml-3" title="Download Text Files" onclick="export_file('text');" style="display: none;" id="export_txt_button">
+											<i class="fa fa-file-text-o" style="font-size:38px;"></i>
+										</a>
+									</div>
+			            		</div>
+			            	</div>
+			            </div>
+			        </div>
+			    </div>
+		    </div>
+		</div>
+	</div>
+    <div class="col-md-12 mb-5">
+		<div class="pb-2 pt-2">
+			<div id="table_clinical_div">
+	    		<table id="results_table" class="table table-striped table-bordered dt-responsive nowrap" style="width:100%">
+			        <thead>
+			            <tr>
+			            	<th>_NO</th>
+			            	<th>NCT number</th>
+							<th>Conditions</th>
+			            	<th>Interventions</th>
+			            	<th>Outcome measures</th>
+			                <th>Pubmed link</th>
+			                <th>Title</th>
+							<th>Date</th>
+			                <th>Abstract</th>
+			                <th>Authors</th>
+			                <th>Author email</th>
+			                <th>Author affiliation</th>
+							<th>PMCID</th>
+			                <th>DOI</th>
+			                <th>Full text link</th>
+			                <th>Mesh terms</th>
+			                <th>Publication type</th>
+			            </tr>
+			        </thead>
+			        <tbody>
+			        </tbody>
+			    </table>
+			</div>
+    	</div>
+    </div>
+
+    <!-- Modal -->
+	<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+	  	<div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+	    	<div class="modal-content">
+	      		<div class="modal-header">
+	        		<h5 class="modal-title" id="exampleModalLongTitle">Detail</h5>
+	        		<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          			<span aria-hidden="true">&times;</span>
+	        		</button>
+	      		</div>
+	      		<div class="modal-body">
+
+	      			<!-- Title -->
+	        		<div class="form-group bottom-line">
+	        			<h2 id="heading_title">Title</h2>
+	        		</div>
+
+					<!-- NCT number -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>NCT number:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="nct_number">NCT number</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END NCT number -->
+
+					<!-- Conditions -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Conditions:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="conditions">Conditions</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Conditions -->
+
+					<!-- Interventions -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Interventions:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="interventions">Interventions</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Interventions -->
+
+					<!-- Outcome measures -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Outcome measures:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="outcome_measures">Outcome measures</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Outcome measures -->
+
+	        		<!-- Pubmed Link -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Pubmed link:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<a href="#" id="pubmed_link" target="_blank">Pubmed link</a>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Pubmed Link -->
+
+					<!-- Date -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Date:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="date">Date</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Date -->
+
+	        		<!-- Abstract -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Abstract:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="abstract">Abstract</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Abstract -->
+
+	        		<!-- Abstract -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Authors:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="authors_list">Authors</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Abstract -->
+
+	        		<!-- Author email -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Author email:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<a id="author_email">Author email</a>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Author email -->
+
+
+	        		<!-- Author email -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Author affiliation:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="affiliation">Author affiliation</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Author email -->
+
+
+	        		<!-- PMCID -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>PMCID:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="pmcid">PMCID</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END PMCID -->
+
+
+	        		<!-- DOI -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>DOI:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="doi">DOI</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END DOI -->
+
+
+	        		<!-- Full text link -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Full text link:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="full_text_links">Full text link</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Full text link -->
+
+
+	        		<!-- Mesh Terms -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Mesh Terms:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="mesh_terms">Mesh Terms</p>
+	        			</div>
+	        			<div class="col-md-12"><hr></div>
+	        		</div>
+	        		<!-- #END Mesh Terms -->
+
+
+	        		<!-- Mesh Terms -->
+	        		<div class="row">
+	        			<div class="col-md-2">
+	        				<label>Publication type:</label>
+	        			</div>
+	        			<div class="col-md-10">
+	        				<p id="publication_type">Publication type</p>
+	        			</div>
+	        		</div>
+	        		<!-- #END Mesh Terms -->
+	      		</div>
+	      		<div class="modal-footer">
+	        		<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+	      		</div>
+	    	</div>
+	  	</div>
+	</div>
+	<!-- #END Modal -->
+
+	<a id="_iframe" download></a>
+</body>
+  	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+  	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js"></script>
+
+  	<!-- JS for DataTable -->
+  	<script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+	<script src="https://cdn.datatables.net/fixedcolumns/3.3.1/js/dataTables.fixedColumns.min.js"></script>
+
+<!--  	<script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>-->
+<!--  	<script src="https://cdn.datatables.net/responsive/2.2.5/js/dataTables.responsive.min.js"></script>-->
+<!--  	<script src="https://cdn.datatables.net/responsive/2.2.5/js/responsive.bootstrap4.min.js"></script>-->
+
+
+  	<!-- JS for typeahead -->
+  	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.js"></script>
+
+  	<!-- Custom JS -->
+	<script type="text/javascript" src="https://pumbed.s3.eu-west-2.amazonaws.com/statics/js/app.js"></script>
+
+	<script type="text/javascript">
+		$(document).ready(function() {
+			table = $('#results_table').DataTable( { } );
+		} );
+	</script>
+</html>

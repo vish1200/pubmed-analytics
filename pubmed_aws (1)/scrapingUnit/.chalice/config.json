@@ -1,0 +1,23 @@
+{
+  "version": "2.0",
+  "app_name": "pubmedUnit",
+  "environment_variables": {
+    "BUCKET_NAME": "pumbed",
+    "JOB_DEFINITION": "pubmed-job-definition",
+    "QUEUE_NAME": "pubmed-queue"
+  },
+  "stages": {
+    "dev": {
+      "api_gateway_stage": "api",
+      "lambda_timeout": 30,
+      "lambda_memory_size": 256,
+      "lambda_functions": {
+        "process": {
+          "lambda_timeout": 300,
+          "lambda_memory_size": 5376
+        }
+      }
+    }
+  },
+  "automatic_layer": true
+}

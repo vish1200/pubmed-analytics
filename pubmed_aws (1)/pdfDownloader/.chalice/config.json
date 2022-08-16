@@ -1,0 +1,19 @@
+{
+  "version": "2.0",
+  "app_name": "pdfDownloader",
+  "environment_variables": {
+    "BUCKET_NAME": "pumbed",
+    "QUEUE_NAME": "pubmed-queue"
+  },
+  "layers": ["arn:aws:lambda:eu-west-2:938870576265:layer:headless-chrome-driver:3"],
+  "stages": {
+    "dev": {
+      "lambda_functions": {
+        "handle_sqs_message": {
+          "lambda_timeout": 300,
+          "lambda_memory_size": 5376
+        }
+      }
+    }
+  }
+}

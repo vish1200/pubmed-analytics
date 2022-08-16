@@ -1,0 +1,7 @@
+boto3
+Jinja2
+pandas
+requests
+bs4
+werkzeug
+openpyxl
