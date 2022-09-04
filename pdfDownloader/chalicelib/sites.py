@@ -2,7 +2,7 @@ from .abstract import Site
 import requests
 from bs4 import BeautifulSoup
 import time
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 import re
 from .exceptions import NoDownloadableContentFound, NoPDFLinkFound, CanNotGetPageSource, DownloadOperationException
 import logging
@@ -34,6 +34,297 @@ driver = webdriver.Chrome('/opt/chromedriver', options=chrome_options)
 driver.set_page_load_timeout(30)
 
 
+## NEW ##
+class Ash(Site):
+    """
+        Sample: https://ashpublications.org/blood/article-lookup/doi/10.1182/blood-2018-05-849596
+    """
+    def __init__(self, url, download_dir, pdf_name):
+        super().__init__()
+        self.url = url
+        self.download_path = download_dir
+        self.pdf_name = pdf_name
+
+        self.headers = {
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+        }
+        self.session = requests.session()
+        self.session.headers.update(self.headers)
+
+    @retry(Exception, tries=2, delay=0.5)
+    def get_page_source(self):
+        return self.session.get(self.url, headers=self.headers, timeout=30)
+
+    def get_pdf_url(self, **args):
+        html = self.get_page_source().content
+        soup = BeautifulSoup(html, "html.parser")
+        element = soup.find('a', class_=['article-pdfLink'])
+        try:
+            pdf_link = element['href']
+            pdf_link = urljoin('https://ashpublications.org/', pdf_link)
+        except Exception:
+            raise NoPDFLinkFound
+        return pdf_link
+
+    @retry(Exception, tries=2, delay=0.5)
+    def download_pdf(self, url):
+        downloadable = is_downloadable(self.session, url)
+        if downloadable:
+            r = self.session.get(url, allow_redirects=True, timeout=30)
+            # filename = get_filename_from_cd(r.headers.get('content-disposition'))
+            pdf_obj = BytesIO()
+            pdf_obj.write(r.content)
+
+            logging.info("PDF Downloaded")
+            return self.pdf_name, pdf_obj
+
+        else:
+            raise NoDownloadableContentFound
+
+    def start_scrape(self):
+        url = self.get_pdf_url()
+        if not url:
+            raise NoPDFLinkFound
+
+        res = self.download_pdf(url)
+        self.session.close()
+        return res
+
+
+class MDPI(Site):
+    """
+        Sample: https://www.mdpi.com/resolver?pii=cancers12092540
+    """
+
+    def __init__(self, url, download_dir, pdf_name):
+        super().__init__()
+        self.url = url
+        self.download_path = download_dir
+        self.pdf_name = pdf_name
+
+        self.headers = {
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+        }
+        self.session = requests.session()
+        self.session.headers.update(self.headers)
+
+    @retry(Exception, tries=2, delay=0.5)
+    def get_page_source(self):
+        return self.session.get(self.url, headers=self.headers, timeout=30)
+
+    def get_pdf_url(self, **args):
+        html = self.get_page_source().content
+        soup = BeautifulSoup(html, "html.parser")
+        element = soup.find('a', class_="UD_ArticlePDF")
+        try:
+            pdf_path = element['href']
+            parsed_url = urlparse(self.url)
+            pdf_link = "{scheme}://{netloc}{path}".format(scheme=parsed_url.scheme,
+                                                          netloc=parsed_url.netloc,
+                                                          path=pdf_path)
+        except Exception:
+            raise NoPDFLinkFound
+        return pdf_link
+
+    @retry(Exception, tries=2, delay=0.5)
+    def download_pdf(self, url):
+        downloadable = is_downloadable(self.session, url)
+        if downloadable:
+            r = self.session.get(url, allow_redirects=True, timeout=30)
+            # filename = get_filename_from_cd(r.headers.get('content-disposition'))
+            pdf_obj = BytesIO()
+            pdf_obj.write(r.content)
+
+            logging.info("PDF Downloaded")
+            return self.pdf_name, pdf_obj
+
+        else:
+            raise NoDownloadableContentFound
+
+    def start_scrape(self):
+        url = self.get_pdf_url()
+        if not url:
+            raise NoPDFLinkFound
+
+        res = self.download_pdf(url)
+        self.session.close()
+        return res
+
+
+class FrontiersIn(Site):
+    """
+        Sample: https://www.frontiersin.org/articles/10.3389/fneur.2022.858628/full
+    """
+    def __init__(self, url, download_dir, pdf_name):
+        super().__init__()
+        self.url = url
+        self.download_path = download_dir
+        self.pdf_name = pdf_name
+
+        self.headers = {
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+        }
+        self.session = requests.session()
+        self.session.headers.update(self.headers)
+
+    @retry(Exception, tries=2, delay=0.5)
+    def get_page_source(self):
+        return self.session.get(self.url, headers=self.headers, timeout=30)
+
+    def get_pdf_url(self, **args):
+        html = self.get_page_source().content
+        soup = BeautifulSoup(html, "html.parser")
+        element = soup.find('a', class_="download-files-pdf")
+        try:
+            pdf_path = element['href']
+            parsed_url = urlparse(self.url)
+            pdf_link = "{scheme}://{netloc}{path}".format(scheme=parsed_url.scheme,
+                                                          netloc=parsed_url.netloc,
+                                                          path=pdf_path)
+        except Exception:
+            raise NoPDFLinkFound
+        return pdf_link
+
+    @retry(Exception, tries=2, delay=0.5)
+    def download_pdf(self, url):
+        downloadable = is_downloadable(self.session, url)
+        if downloadable:
+            r = self.session.get(url, allow_redirects=True, timeout=30)
+            # filename = get_filename_from_cd(r.headers.get('content-disposition'))
+            pdf_obj = BytesIO()
+            pdf_obj.write(r.content)
+
+            logging.info("PDF Downloaded")
+            return self.pdf_name, pdf_obj
+
+        else:
+            raise NoDownloadableContentFound
+
+    def start_scrape(self):
+        url = self.get_pdf_url()
+        if not url:
+            raise NoPDFLinkFound
+
+        res = self.download_pdf(url)
+        self.session.close()
+        return res
+
+
+class Hindawi(Site):
+    """
+        Sample: http://www.hindawi.com/journals/bmri/2016/8058946/
+    """
+    def __init__(self, url, download_dir, pdf_name):
+        super().__init__()
+        self.url = url
+        self.download_path = download_dir
+        self.pdf_name = pdf_name
+
+        self.headers = {
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+        }
+        self.session = requests.session()
+        self.session.headers.update(self.headers)
+
+    @retry(Exception, tries=2, delay=0.5)
+    def get_page_source(self):
+        return self.session.get(self.url, headers=self.headers, timeout=30)
+
+    def get_pdf_url(self, **args):
+        html = self.get_page_source().content
+        soup = BeautifulSoup(html, "html.parser")
+        element = soup.find('a', class_="pdf_desktop")
+        try:
+            return element['href']
+        except Exception:
+            raise NoPDFLinkFound
+
+    @retry(Exception, tries=2, delay=0.5)
+    def download_pdf(self, url):
+        downloadable = is_downloadable(self.session, url)
+        if downloadable:
+            r = self.session.get(url, allow_redirects=True, timeout=30)
+            # filename = get_filename_from_cd(r.headers.get('content-disposition'))
+            pdf_obj = BytesIO()
+            pdf_obj.write(r.content)
+
+            logging.info("PDF Downloaded")
+            return self.pdf_name, pdf_obj
+
+        else:
+            raise NoDownloadableContentFound
+
+    def start_scrape(self):
+        url = self.get_pdf_url()
+        if not url:
+            raise NoPDFLinkFound
+
+        res = self.download_pdf(url)
+        self.session.close()
+        return res
+
+
+class Jimmunol(Site):
+    """
+        Sample: http://www.jimmunol.org/cgi/pmidlookup?view=long&pmid=20357264
+    """
+    def __init__(self, url, download_dir, pdf_name):
+        super().__init__()
+        self.url = url
+        self.download_path = download_dir
+        self.pdf_name = pdf_name
+
+        self.headers = {
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+        }
+        self.session = requests.session()
+        self.session.headers.update(self.headers)
+
+    @retry(Exception, tries=2, delay=0.5)
+    def get_page_source(self):
+        return self.session.get(self.url, headers=self.headers, timeout=30)
+
+    def get_pdf_url(self, **args):
+        html = self.get_page_source().content
+        soup = BeautifulSoup(html, "html.parser")
+        element = soup.find('a', {'data-panel-name': 'jnl_jimmunol_tab_pdf'})
+        try:
+            pdf_path = element['href']
+            parsed_url = urlparse(self.url)
+            pdf_link = "{scheme}://{netloc}{path}".format(scheme=parsed_url.scheme,
+                                                          netloc=parsed_url.netloc,
+                                                          path=pdf_path)
+            return pdf_link
+        except Exception:
+            raise NoPDFLinkFound
+
+    @retry(Exception, tries=2, delay=0.5)
+    def download_pdf(self, url):
+        downloadable = is_downloadable(self.session, url)
+        if downloadable:
+            r = self.session.get(url, allow_redirects=True, timeout=30)
+            # filename = get_filename_from_cd(r.headers.get('content-disposition'))
+            pdf_obj = BytesIO()
+            pdf_obj.write(r.content)
+
+            logging.info("PDF Downloaded")
+            return self.pdf_name, pdf_obj
+
+        else:
+            raise NoDownloadableContentFound
+
+    def start_scrape(self):
+        url = self.get_pdf_url()
+        if not url:
+            raise NoPDFLinkFound
+
+        res = self.download_pdf(url)
+        self.session.close()
+        return res
+
+##
+
+
 class NIHGov(Site):
     """
         Sample: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4628785/
@@ -63,16 +354,26 @@ class NIHGov(Site):
     def get_pdf_url(self):
         html = self.get_page_source().content
         soup = BeautifulSoup(html, "html.parser")
-        elements = soup.find("div", class_="format-menu").find("ul").find_all("li")
 
-        for element in elements:
-            if ".pdf" in str(element):
-                pdf_path = element.find("a")['href']
-                parsed_url = urlparse(self.url)
-                pdf_link = "{scheme}://{netloc}{path}".format(scheme=parsed_url.scheme,
-                                                              netloc=parsed_url.netloc,
-                                                              path=pdf_path)
-                return pdf_link
+        # Old search method
+        pdf_path = None
+        if soup.find("div", class_="format-menu") is not None:
+            elements = soup.find("div", class_="format-menu").find("ul").find_all("li")
+            for element in elements:
+                if ".pdf" in str(element):
+                    pdf_path = element.find("a")['href']
+
+        # New search method
+        elif soup.find("li", class_="pdf-link") is not None:
+            element = soup.find("li", class_="pdf-link")
+            pdf_path = element.a['href']
+
+        if pdf_path:
+            parsed_url = urlparse(self.url)
+            pdf_link = "{scheme}://{netloc}{path}".format(scheme=parsed_url.scheme,
+                                                          netloc=parsed_url.netloc,
+                                                          path=pdf_path)
+            return pdf_link
         raise NoPDFLinkFound
 
     @retry(Exception, tries=2, delay=0.5)
@@ -182,9 +483,9 @@ class UnitoIt(Site):
     def get_pdf_url(self, **args):
         html = self.get_page_source().content
         soup = BeautifulSoup(html, "html.parser")
-        elements = soup.find("table", class_="table panel-body").find("tr").find_next_siblings("tr")
 
         try:
+            elements = soup.find("table", class_="table panel-body").find("tr").find_next_siblings("tr")
             for element in elements:
                 if "Open Access" in str(element):
                     href = element.find("td").find("a", href=True)['href']
@@ -193,8 +494,17 @@ class UnitoIt(Site):
                                                             netloc=parsed_url.netloc)
                     pdf_link = root_url + href
                     return pdf_link
-        except Exception:
-            raise NoPDFLinkFound
+        except AttributeError:
+            elements = soup.find("table", class_="table").find_all("tr")
+            for element in elements:
+                if "Accesso aperto" in str(element):
+                    pdf_path = element.find("a", class_="btn")["href"]
+                    parsed_url = urlparse(self.url)
+                    root_url = "{scheme}://{netloc}".format(scheme=parsed_url.scheme,
+                                                            netloc=parsed_url.netloc)
+                    pdf_link = urljoin(root_url, pdf_path)
+                    return pdf_link
+        raise NoPDFLinkFound
 
     @retry(Exception, tries=2, delay=0.5)
     def download_pdf(self, url):
@@ -225,6 +535,7 @@ class OUP(Site):
             https://academic.oup.com/jnen/article/77/7/608/4999948
             https://academic.oup.com/peds/article/30/6/431/3799720
     """
+
     def __init__(self, url, download_dir, pdf_name):
         super().__init__()
         self.url = url
@@ -282,6 +593,7 @@ class AJMC(Site):
             https://www.ajmc.com/view/amyotrophic-lateral-sclerosis-disease-state-overview
             https://www.ajmc.com/view/introduction-to-pseudobulbar-affect-setting-the-stage-for-recognition-and-familiarity-with-this-challenging-disorder
     """
+
     def __init__(self, url, download_dir, pdf_name):
         super().__init__()
         self.url = url
@@ -336,6 +648,7 @@ class Nature(Site):
         Samples:
             https://www.nature.com/articles/leu201580
     """
+
     def __init__(self, url, download_dir, pdf_name):
         super().__init__()
         self.url = url
@@ -356,8 +669,13 @@ class Nature(Site):
         try:
             html = self.get_page_source().content
             soup = BeautifulSoup(html, "html.parser")
-            pdf_href = soup.find("div", class_="c-pdf-download u-clear-both").find("a", class_="c-pdf-download__link",
-                                                                                   href=True)['href']
+            try:
+                pdf_href = \
+                    soup.find("div", class_="c-pdf-download u-clear-both").find("a", class_="c-pdf-download__link",
+                                                                                href=True)['href']
+            except AttributeError:
+                pdf_href = soup.find("div", class_="c-pdf-download").find("a", class_="c-pdf-download__link",
+                                                                          href=True)['href']
             parsed_url = urlparse(self.url)
             root_url = "{scheme}://{netloc}".format(scheme=parsed_url.scheme,
                                                     netloc=parsed_url.netloc)
@@ -394,6 +712,7 @@ class BMJ(Site):
             https://ard.bmj.com/content/74/7/1474.long
             https://jnnp.bmj.com/lookup/pmidlookup?view=long&pmid=26203157
     """
+
     def __init__(self, url, download_dir, pdf_name):
         super().__init__()
         self.url = url
@@ -456,6 +775,7 @@ class Biologists(Site):
             https://dmm.biologists.org/content/10/5/537.long
             https://jcs.biologists.org/content/132/7/jcs220061.long
     """
+
     def __init__(self, url, download_dir, pdf_name):
         super().__init__()
         self.url = url
@@ -512,6 +832,7 @@ class Karger(Site):
         Samples:
             https://www.karger.com/Article/FullText/506259
     """
+
     def __init__(self, url, download_dir, pdf_name):
         super().__init__()
         self.url = url
@@ -570,6 +891,7 @@ class Wiley(Site):
             https://onlinelibrary.wiley.com/doi/full/10.1002/ajh.24300
             https://onlinelibrary.wiley.com/doi/full/10.1111/jnc.13945
     """
+
     def __init__(self, url, download_dir, pdf_name):
         super().__init__()
         self.url = url
@@ -607,10 +929,10 @@ class Wiley(Site):
                 return f
         return False
 
-
     """
         Source: https://stackoverflow.com/a/51949811
     """
+
     def download_wait(self, directory, timeout, nfiles=None):
         """
         Wait for downloads to finish with a specified timeout.
@@ -644,6 +966,7 @@ class Wiley(Site):
     """
         Source: https://medium.com/@moungpeter/how-to-automate-downloading-files-using-python-selenium-and-headless-chrome-9014f0cdd196
     """
+
     def enable_download_headless(self, browser, download_dir):
         browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
         params = {'cmd': 'Page.setDownloadBehavior', 'params': {'behavior': 'allow', 'downloadPath': download_dir}}
@@ -652,6 +975,7 @@ class Wiley(Site):
     """
         First Step
     """
+
     @retry(Exception, tries=2, delay=0.5)
     def get_page_source(self):
         self.driver.get(self.url)
@@ -682,7 +1006,8 @@ class Wiley(Site):
         self.enable_download_headless(self.driver, self.download_path)
 
         try:
-            download_button = self.driver.find_element_by_css_selector('#app-navbar > div.btn-group.navbar-right > div.grouped.right > a')
+            download_button = self.driver.find_element_by_css_selector(
+                '#app-navbar > div.btn-group.navbar-right > div.grouped.right > a')
             self.driver.get(download_button.get_attribute("href"))
             download_button.click()
         except Exception as e:

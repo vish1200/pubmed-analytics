@@ -16,10 +16,6 @@ class Downloader:
         self.download_dir = download_dir
         print("Thread Data Count", len(self.data))
 
-    # def get_fulltext_urls(self):
-    #     data = self.get_data()
-    #     return data['Full text link']
-
     def run(self):
         data = self.data
         for idx in range(len(data)):
@@ -111,6 +107,21 @@ def url_classifier(url):
     if "wiley.com" in url:
         from .sites import Wiley
         return Wiley
+    if "ashpublications.org" in url:
+        from .sites import Ash
+        return Ash
+    if "mdpi.com" in url:
+        from .sites import MDPI
+        return MDPI
+    if "frontiersin.org" in url:
+        from .sites import FrontiersIn
+        return FrontiersIn
+    if "hindawi.com" in url:
+        from .sites import Hindawi
+        return Hindawi
+    if "jimmunol.org" in url:
+        from .sites import Jimmunol
+        return Jimmunol
     return False
 
 
@@ -129,12 +140,4 @@ def url_resolver(url, session):
             return location
         return False
 
-    # if "doi" in url:
-    #     return session.head(url).headers.get('Location')
-    # try:
-    #     location = session.head(url).headers.get('Location')
-    #     if location:
-    #         return location
-    #     raise Exception
-    # except Exception:
     return url
